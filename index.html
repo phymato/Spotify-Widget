@@ -197,6 +197,7 @@
         function tokenFromCookie(){
             let token = document.cookie.split("=")[1];
             if (token == undefined){
+                showErrorOverlay();
                 throw new Error("No cookie");
             }
             //console.log(token);
@@ -251,17 +252,21 @@
             $("#progress-bar").css("width", percent+"%");
         }
 
+        function showErrorOverlay(){
+            $("#overlay-div").css("display", "block");
+            $("#overlay-text").text("Unauthorized! Go here to get a token: \n");
+            $("#overlay-text").append(
+                "<br><a href=\"" + "get_token.html" + "\">Authenticate</a>"
+            );
+        }
+
         function reload_spotify(){
             let req = $.ajax(spotify_request)
             .done(updateFields)
             .fail(function(response){
                 console.log(response);
                 if (response.status == 401){
-                    $("#overlay-div").css("display", "block");
-                    $("#overlay-text").text("Unauthorized! Go here to get a token: \n");
-                    $("#overlay-text").append(
-                        "<br><a href=\"" + "get_token.html" + "\">Authenticate</a>"
-                    );
+                    showErrorOverlay();
                 }
             });
             
