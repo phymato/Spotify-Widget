@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify API Widget</title>
+    <script src="jquery.min.js"></script>
+    <style>
+        /* GLOBALS */
+        @font-face {
+            font-family: "Gotham Medium Regular";
+            src: url("font/Gotham\ Medium\ Regular.ttf");
+        }
+        body{
+            font-family: "Gotham Medium Regular";
+            background-color: #00f;
+            padding: 0 0 0 0;
+            margin: 0 0 0 0;
+        }
+        p{
+            font-size: 1em;
+            font-weight: bold;
+            color: #fff;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: normal;
+            color: #fff;
+        }
+        h3{
+            font-size: 2em;
+        }
+        h5{
+            font-size: 1em;
+        }
+        h6{
+            font-size: 1em;
+        }
+        /* COLORS */
+
+        .black{
+            background-color: #191414 !important;
+        }
+        .green{
+            background-color: #1DB954 !important;
+        }
+        .text-gray{
+            color: #b6b4b4 !important;
+        }
+        .gray{
+            background-color: #3a3838 !important;
+        }
+        .white{
+            background-color: #fff !important;
+        }
+
+        /* ETC */
+
+        .main{
+            width: 100%;
+            height: 100%;
+            
+        }
+        .flex-row{
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+        }
+        .space-between{
+            justify-content: space-between;
+        }
+        .w240{
+            width: 240px;
+        }
+        .flex-column{
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            flex-grow: 1;
+            padding: 1em 2em 1em 2em;
+        }
+        .flex-column > *{
+            padding: 0 0 0 0;
+            margin: 0 0 0 0;
+        }
+        #album-cover{
+            width: auto;
+            height: auto;
+            max-height: 100vh;
+
+        }
+        .margin-top{
+            margin-top: 12px;
+        }
+        .bold{
+            font-weight: bold;
+        }
+
+        /* BAR */
+
+        .fullbar{
+            width: 100%;
+            height: 4px;
+        }
+        .progressbar{
+            width: 30%;
+            height: 100%;
+        }
+
+        /* OVERLAY */
+        .overlay{
+            /* stolen striaght from w3schools lmao */
+            position: fixed; /* Sit on top of the page content */
+            display: none; /* Hidden by default */
+            width: 100%; /* Full width (cover the whole page) */
+            height: 100%; /* Full height (cover the whole page) */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #191414; /* Black background with opacity */
+            z-index: 2; /* Specify a stack order in case you're using a different order for other elements */
+            cursor: pointer; /* Add a pointer on hover */
+        }
+
+        /* MEDIA RULES */
+        @media screen and (max-height:160px) {
+            h3{
+                font-size: 1em;
+            }
+            h5, h6 {
+                font-size: .7em;
+            }
+            .flex-column{
+                flex-direction: column;
+                padding: .5em 1em .5em 1em
+            }
+            #track-name{
+                flex: 0 0;
+            }
+            #artist-name, #album-name{
+                flex: 0 0;
+            }
+            p{
+                font-size: .7em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main black">
+        <div class="overlay" id="overlay-div">
+            <p id="overlay-text">Uh oh, something went wrong.</p>
+        </div>
+        <div class="flex-row">
+            <img src="" alt="no image..." id="album-cover">
+            <div class="flex-column">
+                <h3 class="margin-top bold" id="track-name">Title</h3>
+                <h5 class="text-gray" id="artist-name">by Artist</h5>
+                <h6 class="text-gray" id="album-name">on Album name</h6>
+                <div class="fullbar margin-top gray" id="full-bar">
+                    <div class="progressbar white" id="progress-bar"></div>
+                    <div class="flex-row space-between">
+                        <p id="current-time">0:00</p>
+                        <p id="end-time">0:00</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        /*
+            THIS IS NOT MEANT TO BE USED ON ACTUAL WEBSITES
+            Doing so may leave your website vulnerable to XSS attacks.
+        */
+        let authLink = "https://accounts.spotify.com/authorize?response_type=token&client_id=43414440c889415d9d06ee247b59ee1c&scope=user-read-currently-playing%20user-read-playback-position&redirect_uri=http%3A%2F%2F127.0.0.1%3A5500%2F"
+        let spotify_request = {
+            "async": true,
+            "crossDomain": true,
+            "url": "https://api.spotify.com/v1/me/player/currently-playing",
+            "method": "GET",
+            "headers": {
+                "Authorization": "Bearer TOKEN_GOES_HERE"
+            }
+        };
+
+        function tokenFromHash(){
+            let hash = window.location.hash.replace('#', '');
+            let tokenQuery = hash.split("&")[0];
+            let token = tokenQuery.split("=")[1];
+            console.log("token:", token);
+
+            spotify_request.headers.Authorization = "Bearer " + token;
+        }
+
+        function tokenFromCookie(){
+            let token = document.cookie.split("=")[1];
+            if (token == undefined){
+                throw new Error("No cookie");
+            }
+            //console.log(token);
+            spotify_request.headers.Authorization = "Bearer " + token;
+        }
+
+        function format_ms(ms){
+            let seconds = Math.floor(ms / 1000);
+            let minutes = Math.floor(seconds / 60);
+            let newSeconds = Math.floor(seconds - minutes*60);
+            if (newSeconds < 10) { newSeconds = "0" + newSeconds}
+            return minutes + ":" + newSeconds;
+        }
+
+        function updateFields(response, textStatus, jqXHR){
+            $("#overlay-div").css("display", "none");
+            
+            let progress;
+            let duration;
+            let percent;
+            let album_name;
+            let album_image;
+            let artist;
+            let track_name;
+
+            if (jqXHR.status == 204){ // OK response, not playing anything
+                progress = 0;
+                duration = 0;
+                percent = 0;
+                album_name = "???";
+                album_image = ""; // TODO: placeholder image url
+                artist = "???";
+                track_name = "Not playing"
+            } else {
+                progress = response.progress_ms;
+                duration = response.item.duration_ms;
+                percent = (progress / duration * 100).toFixed(2);
+
+                album_name = response.item.album.name;
+                album_image = response.item.album.images[1].url; // gets 300px version
+                artist = response.item.artists[0].name // only returns first artist!
+                track_name = response.item.name;
+            }
+
+            $("#track-name").text(track_name);
+            $("#artist-name").text("by " + artist);
+            $("#album-name").text("on " + album_name);
+            $("#album-cover").attr("src", album_image);
+
+            $("#current-time").text(format_ms(progress));
+            $("#end-time").text(format_ms(duration));
+            $("#progress-bar").css("width", percent+"%");
+        }
+
+        function reload_spotify(){
+            let req = $.ajax(spotify_request)
+            .done(updateFields)
+            .fail(function(response){
+                console.log(response);
+                if (response.status == 401){
+                    $("#overlay-div").css("display", "block");
+                    $("#overlay-text").text("Unauthorized! Go here to get a token: \n");
+                    $("#overlay-text").append(
+                        "<br><a href=\"" + "get_token.html" + "\">Authenticate</a>"
+                    );
+                }
+            });
+            
+        }
+
+        // run this ONCE every page refresh
+        tokenFromCookie();
+        let listening_loop = setInterval(reload_spotify, 1000);
+        //reload_spotify();
+    </script>
+</body>
+</html>

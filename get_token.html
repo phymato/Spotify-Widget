@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>get ur token here</title>
+    <script src="jquery.min.js"></script>
+</head>
+<body>
+    <p>Log in to Spotify, then this page will save/update a token for the widget to use, saved as a local cookie.
+        Always play it safe by keeping your token secret! (Even though this one has no write permissions.)</p>
+    <p>If you already have the widget open, be sure to refresh it after you're done</p>
+    <a href="https://accounts.spotify.com/authorize?response_type=token&client_id=43414440c889415d9d06ee247b59ee1c&scope=user-read-currently-playing%20user-read-playback-position&redirect_uri=http%3A%2F%2F127.0.0.1%3A5500%2Fget_token.html">
+        <h3>Log in to Spotify</h3>
+    </a>
+    <p id="status">Checking for valid cookie...</p>
+    <a href="index.html">Go back</a>
+    <a href="index.html" onclick="javascript:window.open('index.html', 'newwindow', 'width=400,height=160')">Open widget as popup</a>
+    <script>
+        function tokenFromHash(){
+            let hash = window.location.hash.replace('#', '');
+            let tokenQuery = hash.split("&")[0];
+            let token = tokenQuery.split("=")[1];
+            console.log("token:", token);
+            if (token == undefined){
+                throw new Error("No cookie");
+            }
+
+            document.cookie = "token="+token+";path=/"
+        }
+        function checkForToken(){
+            let test = document.cookie.search("token");
+            console.log(document.cookie);
+            if (test != -1){
+                $("#status").append("\nSuccess! You may now close this window.");
+            } else {
+                $("#status").append("\Unable to find cookie.");
+            }
+        }
+        tokenFromHash();
+        checkForToken();
+    </script>
+</body>
+</html>
